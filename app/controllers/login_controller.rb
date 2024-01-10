@@ -276,6 +276,14 @@ class LoginController < ApplicationController
     end
   end
 
+  if Rails.env.test?
+    def test_login
+      user = User.where(username: params[:username]).first
+      session[:u] = user.session_token
+      redirect_to '/'
+    end
+  end
+
   private
 
   def find_twofa_user

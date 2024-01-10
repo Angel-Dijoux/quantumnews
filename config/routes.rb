@@ -48,8 +48,8 @@ Rails.application.routes.draw do
   get "/replies/unread/page/:page" => "replies#unread"
 
   get "/login" => "login#index"
-  get "/signup" => "login#index"
-  # post "/login" => "login#login"
+  # get "/signup" => "login#index"
+  post "/login" => "login#login"
   post "/logout" => "login#logout"
 
   # get "/login/2fa" => "login#twofa"
@@ -243,4 +243,9 @@ Rails.application.routes.draw do
   get "/about" => "about#about"
 
   post "/csp-violation-report" => "csp#violation_report"
+
+  if Rails.env.test?
+    get "/test/login" => "login#test_login"
+    get "/test/signup" => "signup#test_signup"
+  end
 end

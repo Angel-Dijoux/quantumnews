@@ -184,10 +184,6 @@ class User < ApplicationRecord
       h[:github_username] = github_username
     end
 
-    if aqora_username.present?
-      h[:aqora_username] = aqora_username
-    end
-
     if twitter_username.present?
       h[:twitter_username] = twitter_username
     end

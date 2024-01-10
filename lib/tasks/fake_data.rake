@@ -1,6 +1,7 @@
 # typed: false
 
 require "faker"
+require 'securerandom'
 
 class FakeDataGenerator
   def initialize(users_count = 50, stories_count = 100, categories_count = 5)
@@ -16,10 +17,10 @@ class FakeDataGenerator
       print "."
       mod = User.moderators.sample
       name = Faker::Name.name
-      password = Faker::Internet.password
+      aqora_id = SecureRandom.uuid
       create_args = {
+        aqora_id: aqora_id,
         email: Faker::Internet.email(name: name),
-        password: password,
         password_confirmation: password,
         username: Faker::Internet.user_name(specifier: name, separators: %w[_])[..23],
         created_at: (User::NEW_USER_DAYS + 1).days.ago,

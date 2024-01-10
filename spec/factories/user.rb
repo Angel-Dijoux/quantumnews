@@ -1,12 +1,13 @@
 # typed: false
 
+require 'securerandom'
+
 FactoryBot.define do
   factory :user do
     created_at { Time.current - (User::NEW_USER_DAYS + 1).days } # default to experience
     sequence(:email) { |n| "user-#{n}@example.com" }
     sequence(:username) { |n| "username#{n}" }
-    password { "blah blah" }
-    password_confirmation(&:password)
+    aqora_id { SecureRandom.uuid }
     trait(:banned) do
       transient do
         banner { nil }

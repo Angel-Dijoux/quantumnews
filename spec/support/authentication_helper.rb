@@ -2,18 +2,14 @@
 
 module AuthenticationHelper
   module FeatureHelper
-    def stub_login_as user
-      # feature specs don't have access to the session store
-      visit "/login"
-      fill_in "E-mail or Username:", with: user.email
-      fill_in "Password:", with: user.password
-      click_button "Login"
+    def stub_login_as(user)
+      visit "/test/login?username=#{user.username}"
     end
   end
 
   module RequestHelper
-    def sign_in user
-      post "/login", params: {email: user.email, password: user.password}
+    def sign_in(user)
+      get '/test/login', params: { username: user.username }
     end
   end
 end

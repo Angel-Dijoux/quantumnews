@@ -76,6 +76,18 @@ class SignupController < ApplicationController
     end
   end
 
+  if Rails.env.test?
+    def test_signup
+      user = User.create!(
+        username: params[:username],
+        email: params[:email],
+        aqora_id: params[:aqora_id]
+      )
+      session[:u] = user.session_token
+      redirect_to '/'
+    end
+  end
+
   private
 
   def check_new_users

@@ -347,6 +347,7 @@ class Comment < ApplicationRecord
   def update_score_and_recalculate!(score_delta, flag_delta)
     self.score += score_delta
     self.flags += flag_delta
+    new_confidence = calculated_confidence
     # confidence_order allows sorting sibling comments by confidence in queries like story_threads.
     # confidence_order must sort in ascending order so that it's in the right order when
     # concatenated into confidence_order_path, which the database sorts lexiographically. It is 3
@@ -359,12 +360,15 @@ class Comment < ApplicationRecord
     # assigned sequentially, mostly the tiebreaker sorts earlier comments sooner. We average ~200
     # comments per weekday so seeing rollover between sibling comments is rare. Importantly, even
     # when it is 'wrong', it gives a stable sort.
+    confidence_order = [((new_confidence + 0.2) * 65_535 / 1.2).floor]
+      .pack('n').concat((id & 0xff).chr).unpack1('H*')
+
     Comment.connection.execute <<~SQL
       UPDATE comments SET
         score = (select coalesce(sum(vote), 0) from votes where comment_id = comments.id),
         flags = (select count(*) from votes where comment_id = comments.id and vote = -1),
         confidence = #{calculated_confidence},
-        confidence_order = concat(lpad(char(65536 - floor(((confidence - -0.2) * 65535) / 1.2) using binary), 2, '0'), char(id & 0xff using binary))
+        confidence_order = decode('#{confidence_order}', 'hex')
       WHERE id = #{id.to_i}
     SQL
     story.update_cached_columns
@@ -611,7 +615,7 @@ class Comment < ApplicationRecord
             c.id,
             0 as depth,
             (select count(*) from comments where parent_comment_id = c.id) as reply_count,
-            cast(confidence_order as char(#{Comment::COP_LENGTH}) character set binary) as confidence_order_path
+            confidence_order as confidence_order_path
             from comments c
             where
               thread_id in (#{thread_ids.join(", ")}) and
@@ -621,10 +625,8 @@ class Comment < ApplicationRecord
             c.id,
             discussion.depth + 1,
             (select count(*) from comments where parent_comment_id = c.id),
-            cast(concat(
-              left(discussion.confidence_order_path, 3 * (depth + 1)),
+            substring(discussion.confidence_order_path from 0 for 3 * (depth + 1)) ||
               c.confidence_order
-            ) as char(#{Comment::COP_LENGTH}) character set binary)
           from comments c join discussion on c.parent_comment_id = discussion.id
           )
           select * from discussion as comments
@@ -654,7 +656,7 @@ class Comment < ApplicationRecord
             c.id,
             0 as depth,
             (select count(*) from comments where parent_comment_id = c.id) as reply_count,
-            cast(confidence_order as char(#{Comment::COP_LENGTH}) character set binary) as confidence_order_path
+            confidence_order as confidence_order_path
             from comments c
             join stories on stories.id = c.story_id
             where
@@ -665,10 +667,8 @@ class Comment < ApplicationRecord
             c.id,
             discussion.depth + 1,
             (select count(*) from comments where parent_comment_id = c.id),
-            cast(concat(
-              left(discussion.confidence_order_path, 3 * (depth + 1)),
+            substring(discussion.confidence_order_path from 0 for 3 * (depth + 1)) ||
               c.confidence_order
-            ) as char(#{Comment::COP_LENGTH}) character set binary)
           from comments c join discussion on c.parent_comment_id = discussion.id
           )
           select * from discussion as comments
